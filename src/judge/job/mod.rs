@@ -115,7 +115,7 @@ impl Job {
   /// Execute the job and get resource usage and exit_type
   pub async fn status(self) -> Result<Wait, JobError> {
     Ok(
-      Wait::from(
+      Wait::wait(
         self
           .command()?
           .spawn()?

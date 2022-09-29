@@ -30,7 +30,7 @@ pub enum WaitError {
 
 #[cfg(target_family = "unix")]
 impl Wait {
-  pub async fn from(pid: i32) -> Result<Self, WaitError> {
+  pub async fn wait(pid: i32) -> Result<Self, WaitError> {
     // This probably should be unsafe!
     let mut status: i32 = 0;
     let mut rusage = std::mem::MaybeUninit::uninit();
@@ -51,8 +51,8 @@ impl Wait {
     }
   }
 
-  pub async fn from_all() -> Result<Self, WaitError> {
-    Self::from(-1).await
+  pub async fn wait_all() -> Result<Self, WaitError> {
+    Self::wait(-1).await
   }
 }
 
