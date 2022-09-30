@@ -12,16 +12,17 @@ use crate::judge::{
 pub enum CompileError {
   #[error("failed to copy source code: {0}")]
   IoError(#[from] tokio::io::Error),
-  #[error("failed to compile: {0}")]
+  #[error("failed to execute compile job: {0}")]
   JobError(#[from] JobError),
   #[error("unknown language")]
   UnknownLanguage,
   #[error("failed to compile: {0}")]
   ExitStatusError(#[from] ExitStatusError),
+  #[error("{0}")]
+  Failed(String),
 }
 
 pub struct CompileResult {
-  pub success: bool,
   pub stdout: String,
   pub stderr: String,
   pub executable: Executable,
@@ -59,15 +60,21 @@ impl Compile for Compiler {
     if let Some(job) = job {
       // execute compile job
       let output = job.output().await?;
-      Ok(CompileResult {
-        success: output.status.success(),
-        stdout: String::from_utf8_lossy(&output.stdout[..]).to_string(),
-        stderr: String::from_utf8_lossy(&output.stderr[..]).to_string(),
-        executable,
-      })
+      let stdout = String::from_utf8_lossy(&output.stdout[..]).to_string();
+      let stderr = String::from_utf8_lossy(&output.stderr[..]).to_string();
+      if output.status.success() {
+        Ok(CompileResult {
+          stdout,
+          stderr,
+          executable,
+        })
+      } else {
+        Err(CompileError::Failed(
+          format!("{stdout}\n{stderr}").trim().to_string(),
+        ))
+      }
     } else {
       Ok(CompileResult {
-        success: true,
         stdout: String::new(),
         stderr: String::new(),
         executable,

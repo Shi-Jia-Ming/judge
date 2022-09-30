@@ -14,7 +14,7 @@ use crate::{
       wait::WaitStatus,
       Job,
     },
-    step::compile::{Compile, Compiler},
+    step::compile::{Compile, CompileResult, Compiler},
     tmpdir::TmpDir,
     JudgeError,
   },
@@ -28,9 +28,9 @@ use tokio::{
 
 pub async fn handle_request(
   request: TaskRequest,
-  sender: mpsc::Sender<SendMessage>,
-  cache: Arc<Mutex<CacheDir>>,
-) -> Result<(), JudgeError> {
+  sender: &mpsc::Sender<SendMessage>,
+  cache: &Arc<Mutex<CacheDir>>,
+) -> Result<JudgeResult, JudgeError> {
   debug!("Working on task {}", request.id);
 
   debug!("Start sync files...");
@@ -65,22 +65,36 @@ pub async fn handle_request(
     };
   }
 
-  let result = match config {
+  match config {
     // default task
     TaskSpec::Default { common } => {
       debug!("Start judging default task...");
       let mut result = JudgeResult::from_status(JudgeStatus::Compiling);
       progress!(result.clone());
 
-      debug!("Start compiling source code...");
-      let source_dir = TmpDir::new().await?;
-      let compile = Compiler::new(request.code.into_bytes(), request.language)
-        .compile(&source_dir)
-        .await?;
-      result.message += compile.stderr.as_str();
+      // compile step
+      let compile_dirname = TmpDir::new().await?;
+      let compile: anyhow::Result<(CompileResult, Checker)> = try {
+        debug!("Compiling source code...");
+        let compile = Compiler::new(request.code.into_bytes(), request.language)
+          .compile(&compile_dirname)
+          .await?;
 
-      debug!("Preparing checker...");
-      let checker = Checker::new(&common.checker).await?;
+        debug!("Preparing checker...");
+        let checker = Checker::new(&common.checker).await?;
+
+        (compile, checker)
+      };
+      let (compile, checker) = match compile {
+        Ok((compile, checker)) => (compile, checker),
+        Err(error) => {
+          return Ok(JudgeResult::from_status_message(
+            JudgeStatus::CompileError,
+            format!("{error:?}"),
+          ));
+        }
+      };
+      result.message += format!("{}\n{}", compile.stdout, compile.stderr).trim();
 
       debug!("Check input/output file exists...");
       for subtask in common.subtasks.iter() {
@@ -236,23 +250,5 @@ pub async fn handle_request(
 
       Ok(result)
     }
-  };
-
-  debug!("Task finished: {result:?}");
-
-  let finish = match result {
-    Ok(result) => result,
-    Err(JudgeError::CompileError(_)) => JudgeResult::from_status(JudgeStatus::CompileError),
-    Err(_) => JudgeResult::from_status(JudgeStatus::SystemError),
-  };
-
-  sender
-    .send(SendMessage::Finish(Progress {
-      id: request.id,
-      result: finish,
-    }))
-    .await
-    .unwrap();
-
-  Ok(())
+  }
 }

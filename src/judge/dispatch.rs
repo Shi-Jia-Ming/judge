@@ -12,8 +12,11 @@ use tokio_tungstenite::{
 };
 
 use crate::{
-  communicate::message::{Hello, RecvMessage, SendMessage},
-  judge::step::request::handle_request,
+  communicate::{
+    message::{Hello, Progress, RecvMessage, SendMessage},
+    result::{JudgeResult, JudgeStatus},
+  },
+  judge::{step::request::handle_request, JudgeError},
 };
 
 use super::cache::CacheDir;
@@ -88,7 +91,23 @@ impl Dispatch {
                         let sender = sender.clone();
                         let cache = cache.clone();
                         tokio::spawn(async move {
-                          handle_request(request, sender, cache).await.unwrap();
+                          let result = handle_request(request, &sender, &cache).await;
+                          debug!("task finished: {result:?}");
+                          let finish = match result {
+                            Ok(result) => result,
+                            Err(error) => {
+                              let mut result = JudgeResult::from_status(JudgeStatus::SystemError);
+                              result.message = format!("{error}");
+                              result
+                            }
+                          };
+                          sender
+                            .send(SendMessage::Finish(Progress {
+                              id,
+                              result: finish,
+                            }))
+                            .await
+                            .unwrap();
                         });
                       }
                       RecvMessage::Sync(sync) => {

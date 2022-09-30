@@ -144,4 +144,13 @@ impl JudgeResult {
       subtasks: Vec::new(),
     }
   }
+
+  pub fn from_status_message(status: JudgeStatus, message: String) -> Self {
+    Self {
+      status,
+      message,
+      score: 0,
+      subtasks: Vec::new(),
+    }
+  }
 }
