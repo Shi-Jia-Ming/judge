@@ -1,9 +1,11 @@
-use serde_derive::{Deserialize, Serialize};
+use serde_derive::Serialize;
+
+use crate::judge::utils::{Memory, Time};
 
 use super::spec::SubtaskSpec;
 
 /// 测试点结果状态
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub enum TaskStatus {
   /// 测试点还在排队
   Pending,
@@ -31,7 +33,7 @@ pub enum TaskStatus {
 }
 
 /// 子任务结果状态
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub enum SubtaskStatus {
   /// 子任务还在排队（没有进行任何编译或者运行）
   Pending,
@@ -57,7 +59,7 @@ pub enum SubtaskStatus {
 }
 
 /// 评测结果状态
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Debug, Clone)]
 pub enum JudgeStatus {
   /// 任务还在排队
   Pending,
@@ -89,12 +91,12 @@ pub enum JudgeStatus {
   SystemError,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub struct TaskResult {
   pub message: String,
   pub status: TaskStatus,
-  pub time: Option<u32>,
-  pub memory: Option<u64>,
+  pub time: Option<Time>,
+  pub memory: Option<Memory>,
 }
 
 impl TaskResult {
@@ -108,7 +110,7 @@ impl TaskResult {
   }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub struct SubtaskResult {
   pub message: String,
   pub status: SubtaskStatus,
@@ -127,7 +129,7 @@ impl SubtaskResult {
   }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub struct JudgeResult {
   pub message: String,
   pub status: JudgeStatus,

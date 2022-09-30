@@ -4,7 +4,7 @@ use serde_derive::{Deserialize, Serialize};
 
 use super::result::JudgeResult;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(tag = "type")]
 #[serde(rename_all = "lowercase")]
 pub enum RecvMessage {
@@ -16,7 +16,21 @@ pub enum RecvMessage {
   Sync(SyncResponse),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug)]
+pub struct TaskRequest {
+  pub id: u32,
+  pub code: String,
+  pub language: String,
+  pub files: HashMap<String, String>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct SyncResponse {
+  pub uuid: String,
+  pub data: String,
+}
+
+#[derive(Serialize, Clone, Debug)]
 #[serde(tag = "type")]
 #[serde(rename_all = "lowercase")]
 pub enum SendMessage {
@@ -38,7 +52,7 @@ pub enum SendMessage {
   Reject { id: u32 },
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub struct Hello {
   pub version: String,
   pub cpus: u32,
@@ -47,34 +61,20 @@ pub struct Hello {
   pub ext_features: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub struct Status {
   pub cpus: u32,
   pub occupied: u32,
   pub queue: u32,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct TaskRequest {
-  pub id: u32,
-  pub code: String,
-  pub language: String,
-  pub files: HashMap<String, String>,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub struct Progress {
   pub id: u32,
   pub result: JudgeResult,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub struct SyncRequest {
   pub uuid: String,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct SyncResponse {
-  pub uuid: String,
-  pub data: String,
 }

@@ -1,25 +1,27 @@
 use rlimit::{setrlimit, Resource, INFINITY};
 
+use crate::judge::utils::{Memory, Time};
+
 use super::{Limit, LimitError};
 
 /// Use `setrlimit` to limit resources
 pub struct RLimit {
-  /// time limit in seconds
-  time: u32,
-  /// memory limit in bytes
-  memory: u64,
+  /// time limit
+  time: Time,
+  /// memory limit
+  memory: Memory,
 }
 
 impl RLimit {
-  pub fn new(time: u32, memory: u64) -> Self {
+  pub fn new(time: Time, memory: Memory) -> Self {
     Self { time, memory }
   }
 }
 
 impl Limit for RLimit {
   fn apply_to(&self, command: &mut tokio::process::Command) -> Result<(), LimitError> {
-    let time = self.time as u64;
-    let memory = self.memory;
+    let time = self.time.into_seconds() as u64;
+    let memory = self.memory.into_bytes();
     unsafe {
       command.pre_exec(move || {
         // Put resource limits

@@ -1,6 +1,8 @@
 use thiserror::Error;
 use tokio::task::JoinError;
 
+use crate::judge::utils::{Memory, Time};
+
 #[cfg(target_family = "unix")]
 #[derive(Debug)]
 /// The Wait struct
@@ -82,7 +84,7 @@ impl Wait {
   }
 
   pub fn is_ok(&self) -> bool {
-    self.is_exited() && self.exit_code().unwrap() == 0
+    self.is_exited() && self.code == 0
   }
 
   pub fn exit_type(&self) -> WaitStatus {
@@ -101,11 +103,11 @@ impl Wait {
     }
   }
 
-  pub fn cputime(&self) -> i64 {
+  pub fn cputime(&self) -> Time {
     self.rusage.cputime()
   }
 
-  pub fn memory(&self) -> i64 {
+  pub fn memory(&self) -> Memory {
     self.rusage.memory()
   }
 }
@@ -116,14 +118,14 @@ pub struct Rusage(libc::rusage);
 
 #[cfg(target_family = "unix")]
 impl Rusage {
-  /// get cpu time in microseconds
-  pub fn cputime(&self) -> i64 {
-    self.0.ru_stime.tv_sec * 1000 + self.0.ru_stime.tv_usec / 1000
+  /// get cpu time
+  pub fn cputime(&self) -> Time {
+    Time::from_microseconds((self.0.ru_stime.tv_sec * 1000 + self.0.ru_stime.tv_usec / 1000) as u32)
   }
 
   /// get max memory usage in bytes
-  pub fn memory(&self) -> i64 {
-    self.0.ru_maxrss * 1024
+  pub fn memory(&self) -> Memory {
+    Memory::from_kilobytes(self.0.ru_maxrss as u64)
   }
 }
 

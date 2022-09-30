@@ -7,37 +7,26 @@ use std::{path::PathBuf, process};
 use tokio::process::Command;
 use uuid::Uuid;
 
+use crate::judge::utils::Memory;
+
 use super::{Limit, LimitError};
 
 /// use cgroups v2 to limit resources
 pub struct CgroupLimit {
-  // /// time limit in seconds
-  // time: u64,
-  /// memory limit in bytes
-  memory: u64,
-
-  /// delete after drop
-  cgroup: Option<Cgroup>,
+  /// Cgroup limits
+  cgroup: Cgroup,
 }
 
 impl CgroupLimit {
-  pub fn new(memory: u64) -> Self {
-    Self {
-      memory,
-      cgroup: None,
-    }
-  }
-}
-
-impl Limit for CgroupLimit {
-  fn apply_to(&self, command: &mut Command) -> Result<(), LimitError> {
+  pub fn new(memory: Memory) -> Self {
     let heir = Box::new(V2Path::from("/sys/fs/cgroup/judger/"));
     let cg_name = format!("judger_{}", Uuid::new_v4());
+
     #[rustfmt::skip]
     let cgroup = CgroupBuilder::new(&cg_name)
       .memory()
-        .kernel_memory_limit((self.memory / 4) as i64)
-        .memory_hard_limit(self.memory as i64)
+        .kernel_memory_limit((memory.into_bytes() / 4) as i64)
+        .memory_hard_limit(memory.into_bytes() as i64)
         .done()
       .cpu()
         // Currently, no multi-threaded/processed program is allowed for common OJ use.
@@ -48,6 +37,13 @@ impl Limit for CgroupLimit {
         .done()
       .build(heir);
 
+    Self { cgroup }
+  }
+}
+
+impl Limit for CgroupLimit {
+  fn apply_to(&self, command: &mut Command) -> Result<(), LimitError> {
+    let cgroup = self.cgroup.clone();
     unsafe {
       command.pre_exec(move || {
         cgroup
@@ -63,9 +59,7 @@ impl Limit for CgroupLimit {
 
 impl Drop for CgroupLimit {
   fn drop(&mut self) {
-    if let Some(cgroup) = &self.cgroup {
-      cgroup.delete().expect("failed to delete cgroup files");
-    }
+    self.cgroup.delete().expect("failed to delete cgroup files");
   }
 }
 

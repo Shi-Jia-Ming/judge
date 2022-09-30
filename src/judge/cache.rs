@@ -19,10 +19,25 @@ impl CacheDir {
   pub async fn new(stream: mpsc::Sender<SendMessage>) -> io::Result<Self> {
     let root = PathBuf::from("/var/judge/data");
     tokio::fs::create_dir_all(&root).await?;
+    let mut cache = HashMap::new();
+    let mut readdir = tokio::fs::read_dir(&root).await?;
+
+    loop {
+      match readdir.next_entry().await? {
+        Some(dir) if dir.path().is_file() => {
+          cache.insert(dir.file_name().into_string().unwrap(), dir.path());
+        }
+        Some(_) => {}
+        None => break,
+      }
+    }
+
+    debug!("found {} cache files", cache.len());
+
     Ok(Self {
       root,
       map: HashMap::new(),
-      cache: HashMap::new(),
+      cache,
       stream,
     })
   }

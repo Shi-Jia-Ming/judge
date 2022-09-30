@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use std::process::ExitStatusError;
 use thiserror::Error;
 
@@ -26,30 +25,25 @@ pub struct CompileResult {
   pub stdout: String,
   pub stderr: String,
   pub executable: Executable,
+  pub tmpdir: TmpDir,
 }
 
-#[async_trait]
-pub trait Compile {
-  /// Compiles the code with provided tmp dir
-  async fn compile(self, tmpdir: &TmpDir) -> Result<CompileResult, CompileError>;
-}
-
-pub struct Compiler {
+pub struct CompileStep {
   code: Vec<u8>,
   language: String,
 }
 
-impl Compiler {
+impl CompileStep {
   pub fn new(code: Vec<u8>, language: String) -> Self {
     Self { code, language }
   }
 }
 
-#[async_trait]
-impl Compile for Compiler {
-  async fn compile(self, tmpdir: &TmpDir) -> Result<CompileResult, CompileError> {
+impl CompileStep {
+  pub async fn compile(self) -> anyhow::Result<CompileResult> {
     let language =
       Language::from_ext(self.language.as_str()).ok_or(CompileError::UnknownLanguage)?;
+    let tmpdir = TmpDir::new().await?;
 
     // write source file into disk
     let source = tmpdir.filename(format!("Main.{}", language.extension()));
@@ -67,17 +61,19 @@ impl Compile for Compiler {
           stdout,
           stderr,
           executable,
+          tmpdir,
         })
       } else {
         Err(CompileError::Failed(
           format!("{stdout}\n{stderr}").trim().to_string(),
-        ))
+        ))?
       }
     } else {
       Ok(CompileResult {
         stdout: String::new(),
         stderr: String::new(),
         executable,
+        tmpdir,
       })
     }
   }
