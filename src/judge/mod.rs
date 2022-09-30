@@ -1,12 +1,9 @@
 use thiserror::Error;
 use tokio::sync::oneshot::error::RecvError;
 
-use self::{
-  checker::CheckError,
-  job::JobError,
-  step::{compile::CompileError, sync::SyncError},
-};
+use self::{checker::CheckError, job::JobError, step::compile::CompileError};
 
+pub mod cache;
 pub mod checker;
 pub mod dispatch;
 pub mod io;
@@ -17,8 +14,6 @@ pub mod tmpdir;
 
 #[derive(Debug, Error)]
 pub enum JudgeError {
-  #[error("failed to sync file: {0}")]
-  SyncError(#[from] SyncError),
   #[error("failed to wait file: {0}")]
   RecvError(#[from] RecvError),
   #[error("config.json not found")]

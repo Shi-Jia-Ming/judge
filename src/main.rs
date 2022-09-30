@@ -12,6 +12,7 @@ mod judge;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
   env_logger::init();
+
   let addr = std::env::args()
     .nth(1)
     .unwrap_or_else(|| "127.0.0.1:1145".to_string());
@@ -32,7 +33,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
       .expect("Error during the websocket handshake occurred");
 
     tokio::spawn(async move {
-      Dispatch::from(stream).await.run().await.unwrap();
+      Dispatch::from(stream).await.run().await;
       info!("Connection closed: {}", addr);
     });
   }

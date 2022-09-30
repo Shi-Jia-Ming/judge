@@ -82,7 +82,7 @@ impl Wait {
   }
 
   pub fn is_ok(&self) -> bool {
-    self.is_exited() && self.code == 0
+    self.is_exited() && self.exit_code().unwrap() == 0
   }
 
   pub fn exit_type(&self) -> WaitStatus {

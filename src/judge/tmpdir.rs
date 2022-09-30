@@ -46,24 +46,3 @@ impl Drop for TmpDir {
     });
   }
 }
-
-pub struct CacheDir {
-  pub root: PathBuf,
-}
-
-impl CacheDir {
-  /// create a new cachedir under /tmp/judge with random dirname
-  pub async fn new() -> io::Result<Self> {
-    let path = PathBuf::from("/var/judge/data");
-    tokio::fs::create_dir_all(&path)
-      .await
-      .expect("failed to create /var/judge/data");
-    Ok(Self { root: path })
-  }
-
-  pub fn filename(&self, filename: impl AsRef<Path>) -> PathBuf {
-    let mut path = self.root.clone();
-    path.push(filename);
-    path
-  }
-}
