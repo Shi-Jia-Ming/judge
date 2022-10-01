@@ -15,6 +15,7 @@ pub struct Wait {
   code: i32,
 }
 
+#[derive(Debug)]
 pub enum WaitStatus {
   Ok,
   TimeLimitExceed,
@@ -34,11 +35,11 @@ pub enum WaitError {
 impl Wait {
   pub async fn wait(pid: i32) -> Result<Self, WaitError> {
     // This probably should be unsafe!
-    let mut status: i32 = 0;
-    let mut rusage = std::mem::MaybeUninit::uninit();
-
-    let code = tokio::task::spawn_blocking(move || unsafe {
-      libc::wait4(pid, &mut status, 0, rusage.as_mut_ptr())
+    let (code, status, rusage) = tokio::task::spawn_blocking(move || unsafe {
+      let mut status: i32 = 0;
+      let mut rusage = std::mem::MaybeUninit::uninit();
+      let code = libc::wait4(pid, &mut status, 0, rusage.as_mut_ptr());
+      (code, status, rusage)
     })
     .await?;
 

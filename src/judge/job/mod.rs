@@ -2,10 +2,12 @@ pub mod executable;
 pub mod limit;
 pub mod wait;
 
-use log::debug;
-use std::{path::PathBuf, process::Output};
+use std::{
+  path::PathBuf,
+  process::{Command, Output},
+};
 use thiserror::Error;
-use tokio::{fs::File, process::Command};
+use tokio::fs::File;
 
 use crate::builder;
 
@@ -103,23 +105,16 @@ impl Job {
 
   /// Execute the job and get resource usage and exit_type
   pub async fn status(mut self) -> Result<Wait, JobError> {
-    debug!("applying limits and io...");
     let command = self.command().await?;
-    debug!("start spawn command...");
     let child = command.spawn()?;
-    debug!("start wait child process...");
-    let wait = Wait::wait(child.id().expect("failed to get child pid") as i32).await?;
-    debug!("child process finished, return status {wait:?}");
+    let wait = Wait::wait(child.id() as i32).await?;
     Ok(wait)
   }
 
   /// Execute the job and get stdout and stderr
   pub async fn output(mut self) -> Result<Output, JobError> {
-    debug!("applying limits and io...");
     let command = self.command().await?;
-    debug!("start run program...");
-    let output = command.output().await?;
-    debug!("job finished");
+    let output = command.output()?;
     Ok(output)
   }
 }

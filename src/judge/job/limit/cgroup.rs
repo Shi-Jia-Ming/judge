@@ -6,8 +6,11 @@ use cgroups_rs::{
   memory::MemController, pid::PidController, Cgroup, CgroupPid, Hierarchy, Subsystem,
 };
 use log::debug;
-use std::{path::PathBuf, process};
-use tokio::process::Command;
+use std::{
+  os::unix::process::CommandExt,
+  path::PathBuf,
+  process::{self, Command},
+};
 use uuid::Uuid;
 
 use crate::judge::utils::Memory;

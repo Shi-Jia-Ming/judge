@@ -1,3 +1,5 @@
+use std::{os::unix::process::CommandExt, process::Command};
+
 use rlimit::{setrlimit, Resource, INFINITY};
 
 use crate::judge::utils::{Memory, Time};
@@ -19,7 +21,7 @@ impl RLimit {
 }
 
 impl Limit for RLimit {
-  fn apply_to(&self, command: &mut tokio::process::Command) -> Result<(), LimitError> {
+  fn apply_to(&self, command: &mut Command) -> Result<(), LimitError> {
     let time = self.time.into_seconds() as u64;
     let memory = self.memory.into_bytes();
     unsafe {

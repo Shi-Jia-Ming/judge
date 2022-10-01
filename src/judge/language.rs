@@ -1,6 +1,4 @@
-use std::path::PathBuf;
-
-use tokio::process::Command;
+use std::{path::PathBuf, process::Command};
 
 use super::{
   job::{executable::Executable, Job},
