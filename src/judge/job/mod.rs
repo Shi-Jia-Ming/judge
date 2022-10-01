@@ -2,9 +2,10 @@ pub mod executable;
 pub mod limit;
 pub mod wait;
 
-use std::process::{Output, Stdio};
+use log::debug;
+use std::{path::PathBuf, process::Output};
 use thiserror::Error;
-use tokio::process::Command;
+use tokio::{fs::File, process::Command};
 
 use self::{
   executable::Executable,
@@ -16,9 +17,9 @@ use self::{
 pub struct Job {
   command: Command,
 
-  stdin: Option<Stdio>,
-  stdout: Option<Stdio>,
-  stderr: Option<Stdio>,
+  stdin: Option<PathBuf>,
+  stdout: Option<PathBuf>,
+  stderr: Option<PathBuf>,
 
   rlimit: Option<RLimit>,
   cgroup: Option<CgroupLimit>,
@@ -30,8 +31,6 @@ pub enum JobError {
   IoError(#[from] std::io::Error),
   #[error("wait failed: {0}")]
   WaitError(#[from] self::wait::WaitError),
-  // #[error("failed to limit cgroup: {0}")]
-  // CgroupError(#[from] cgroups_rs::error::Error),
   #[error("failed to apply limit to job: {0}")]
   LimitError(#[from] LimitError),
 }
@@ -65,22 +64,26 @@ impl Job {
 
 // builder
 impl Job {
-  pub fn stdin(mut self, stdin: impl Into<Stdio>) -> Self {
-    self.stdin = Some(stdin.into());
+  pub fn stdin(mut self, stdin: PathBuf) -> Self {
+    self.stdin = Some(stdin);
     self
   }
-  pub fn stdout(mut self, stdout: impl Into<Stdio>) -> Self {
-    self.stdout = Some(stdout.into());
+
+  pub fn stdout(mut self, stdout: PathBuf) -> Self {
+    self.stdout = Some(stdout);
     self
   }
-  pub fn stderr(mut self, stderr: impl Into<Stdio>) -> Self {
-    self.stderr = Some(stderr.into());
+
+  pub fn stderr(mut self, stderr: PathBuf) -> Self {
+    self.stderr = Some(stderr);
     self
   }
+
   pub fn rlimit(mut self, rlimit: RLimit) -> Self {
     self.rlimit = Some(rlimit);
     self
   }
+
   pub fn cgroup(mut self, cgroup: CgroupLimit) -> Self {
     self.cgroup = Some(cgroup);
     self
@@ -89,45 +92,51 @@ impl Job {
 
 impl Job {
   /// Apply I/O source and limits to Command
-  fn command(mut self) -> Result<Command, JobError> {
+  async fn command(&mut self) -> Result<&mut Command, JobError> {
     // apply limits
-    if let Some(rlimit) = self.rlimit {
+    if let Some(rlimit) = &self.rlimit {
       rlimit.apply_to(&mut self.command)?;
     }
-    if let Some(cgroup) = self.cgroup {
+    if let Some(cgroup) = &self.cgroup {
       cgroup.apply_to(&mut self.command)?;
     }
 
     // apply io
-    if let Some(stdin) = self.stdin {
+    if let Some(stdin) = &self.stdin {
+      let stdin = File::open(stdin).await?.into_std().await;
       self.command.stdin(stdin);
     }
-    if let Some(stdout) = self.stdout {
+    if let Some(stdout) = &self.stdout {
+      let stdout = File::create(stdout).await?.into_std().await;
       self.command.stdout(stdout);
     }
-    if let Some(stderr) = self.stderr {
+    if let Some(stderr) = &self.stderr {
+      let stderr = File::create(stderr).await?.into_std().await;
       self.command.stderr(stderr);
     }
 
-    Ok(self.command)
+    Ok(&mut self.command)
   }
 
   /// Execute the job and get resource usage and exit_type
-  pub async fn status(self) -> Result<Wait, JobError> {
-    Ok(
-      Wait::wait(
-        self
-          .command()?
-          .spawn()?
-          .id()
-          .expect("failed to get child pid") as i32,
-      )
-      .await?,
-    )
+  pub async fn status(mut self) -> Result<Wait, JobError> {
+    debug!("applying limits and io...");
+    let command = self.command().await?;
+    debug!("start spawn command...");
+    let child = command.spawn()?;
+    debug!("start wait child process...");
+    let wait = Wait::wait(child.id().expect("failed to get child pid") as i32).await?;
+    debug!("child process finished, return status {wait:?}");
+    Ok(wait)
   }
 
   /// Execute the job and get stdout and stderr
-  pub async fn output(self) -> Result<Output, JobError> {
-    Ok(self.command()?.output().await?)
+  pub async fn output(mut self) -> Result<Output, JobError> {
+    debug!("applying limits and io...");
+    let command = self.command().await?;
+    debug!("start run program...");
+    let output = command.output().await?;
+    debug!("job finished");
+    Ok(output)
   }
 }

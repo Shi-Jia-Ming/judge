@@ -5,18 +5,18 @@ use log::debug;
 
 use super::{Handle, HandleContext};
 
-pub struct SyncStep {
+pub struct SyncHandler {
   files: HashMap<String, String>,
 }
 
-impl SyncStep {
+impl SyncHandler {
   pub fn new(files: HashMap<String, String>) -> Self {
     Self { files }
   }
 }
 
 #[async_trait]
-impl Handle<HashMap<String, PathBuf>> for SyncStep {
+impl Handle<HashMap<String, PathBuf>> for SyncHandler {
   async fn handle(self, context: &HandleContext) -> anyhow::Result<HashMap<String, PathBuf>> {
     debug!("Start sync files...");
     let mut map = HashMap::new();

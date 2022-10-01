@@ -13,41 +13,34 @@ use crate::{
     message::{Hello, Progress, RecvMessage, SendMessage},
     result::{JudgeResult, JudgeStatus},
   },
-  judge::step::{Handle, HandleContext},
+  judge::step::{request::RequestHandler, Handle, HandleContext},
 };
 
 use super::cache::CacheDir;
 
 pub struct Dispatch {
   pub stream: WebSocketStream<TcpStream>,
-  pub recv: mpsc::Receiver<SendMessage>,
-  pub context: HandleContext,
 }
 
 impl Dispatch {
   pub async fn from(stream: WebSocketStream<TcpStream>) -> Self {
-    let (sender, recv) = mpsc::channel::<SendMessage>(1024);
-    let cache = Arc::new(Mutex::new(
-      CacheDir::new(sender.clone())
-        .await
-        .expect("failed to create cache dir"),
-    ));
-    let context = HandleContext { sender, cache };
-    Self {
-      stream,
-      context,
-      recv,
-    }
+    Self { stream }
   }
 }
 
 impl Dispatch {
   /// Start the event loop.
   pub async fn run(&mut self) {
-    let context = self.context.clone();
+    let (sender, mut receiver) = mpsc::channel::<SendMessage>(1024);
+    let cache = Arc::new(Mutex::new(
+      CacheDir::new(sender.clone())
+        .await
+        .expect("failed to create cache dir"),
+    ));
+
+    let sender_clone = sender.clone();
     tokio::spawn(async move {
-      context
-        .sender
+      sender_clone
         .send(SendMessage::Hello(Hello {
           version: "v0".to_string(),
           cpus: 1,
@@ -60,7 +53,7 @@ impl Dispatch {
 
     macro_rules! send {
       ($message:expr) => {
-        self.context.sender.send($message).await.unwrap()
+        sender.send($message).await.unwrap()
       };
     }
 
@@ -90,10 +83,13 @@ impl Dispatch {
                         debug!("Accepted request {}", id);
                         send!(SendMessage::Accept { id });
 
-                        let context = self.context.clone();
+                        let context = HandleContext {
+                          sender: sender.clone(),
+                          cache: cache.clone(),
+                          request,
+                        };
                         tokio::spawn(async move {
-                          let result = request.handle(&context).await;
-                          debug!("task finished: {result:?}");
+                          let result = RequestHandler.handle(&context).await;
                           let finish = match result {
                             Ok(result) => result,
                             Err(error) => {
@@ -106,10 +102,10 @@ impl Dispatch {
                         });
                       }
                       RecvMessage::Sync(sync) => {
-                        let context = self.context.clone();
+                        let cache = cache.clone();
                         tokio::spawn(async move {
                           let contents = base64::decode(sync.data).unwrap();
-                          context.cache.lock().await.save(&sync.uuid, &contents).await.expect("failed to save sync file");
+                          cache.lock().await.save(&sync.uuid, &contents).await.expect("failed to save sync file");
                         });
                       }
                     }
@@ -127,7 +123,7 @@ impl Dispatch {
             None => break,
           }
         }
-        message = self.recv.recv() => {
+        message = receiver.recv() => {
           if let Some(message) = message {
             debug!("Send: {message:?}");
             let message = serde_json::to_string(&message).unwrap();

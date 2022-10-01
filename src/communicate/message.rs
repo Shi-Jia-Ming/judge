@@ -58,6 +58,7 @@ pub struct Hello {
   pub cpus: u32,
   pub langs: Vec<String>,
   #[deprecated]
+  #[serde(rename = "ext-features")]
   pub ext_features: Vec<String>,
 }
 

@@ -2,7 +2,6 @@ use async_trait::async_trait;
 use log::debug;
 use std::{collections::HashMap, path::PathBuf};
 use thiserror::Error;
-use tokio::fs::File;
 
 use crate::{
   communicate::{
@@ -12,11 +11,7 @@ use crate::{
   },
   judge::{
     checker::Checker,
-    job::{
-      limit::{cgroup::CgroupLimit, rlimit::RLimit},
-      wait::WaitStatus,
-      Job,
-    },
+    job::{limit::rlimit::RLimit, wait::WaitStatus, Job},
     step::compile::CompileStep,
     tmpdir::TmpDir,
     utils::{Memory, Time},
@@ -29,35 +24,11 @@ use super::{Handle, HandleContext};
 pub struct TaskStep {
   task: TaskSpec,
   files: HashMap<String, PathBuf>,
-  id: u32,
-  code: String,
-  language: String,
 }
 
 impl TaskStep {
   pub fn new(task: TaskSpec, files: HashMap<String, PathBuf>) -> Self {
-    Self {
-      task,
-      files,
-      id: 0,
-      code: String::new(),
-      language: String::new(),
-    }
-  }
-
-  pub fn id(mut self, id: u32) -> Self {
-    self.id = id;
-    self
-  }
-
-  pub fn code(mut self, code: String) -> Self {
-    self.code = code;
-    self
-  }
-
-  pub fn language(mut self, language: String) -> Self {
-    self.language = language;
-    self
+    Self { task, files }
   }
 }
 
@@ -76,7 +47,7 @@ impl Handle<JudgeResult> for TaskStep {
         context
           .sender
           .send(SendMessage::Progress(Progress {
-            id: self.id,
+            id: context.request.id,
             result: $result,
           }))
           .await
@@ -92,9 +63,12 @@ impl Handle<JudgeResult> for TaskStep {
         progress!(result.clone());
 
         // compile step
-        let compile = CompileStep::new(self.code.into_bytes(), self.language)
-          .compile()
-          .await;
+        let compile = CompileStep::new(
+          context.request.code.clone().into_bytes(),
+          context.request.language.clone(),
+        )
+        .compile()
+        .await;
         let compile = match compile {
           Ok(compile) => compile,
           Err(error) => judge_error!(JudgeStatus::CompileError, "{error}"),
@@ -128,15 +102,22 @@ impl Handle<JudgeResult> for TaskStep {
             let memory_limit = task.memory.unwrap_or(memory_limit);
 
             // prepare input/output files
-            let input = self.files.get(&task.input).unwrap();
-            let answer = self.files.get(&task.output).unwrap();
+            let input = self
+              .files
+              .get(&task.input)
+              .ok_or_else(|| TaskError::FileNotFound(task.input.clone()))?;
+            let answer = self
+              .files
+              .get(&task.output)
+              .ok_or_else(|| TaskError::FileNotFound(task.output.clone()))?;
             let output = &tmpdir.random_file();
 
             // run executable
             let wait = Job::from_executable(&compile.executable)
-              .stdin(File::open(input).await?.into_std().await)
-              .stdout(File::create(output).await?.into_std().await)
-              .cgroup(CgroupLimit::new(Memory::from_bytes(memory_limit)))
+              .stdin(input.clone())
+              .stdout(output.clone())
+              // FIXME enable cgroup limit
+              // .cgroup(CgroupLimit::new(Memory::from_bytes(memory_limit)))
               .rlimit(RLimit::new(
                 Time::from_microseconds(time_limit),
                 Memory::from_bytes(memory_limit),
@@ -243,7 +224,7 @@ impl Handle<JudgeResult> for TaskStep {
         let mut result = JudgeResult::from_status(JudgeStatus::WrongAnswer);
 
         // TODO multi-line judge
-        if self.code.trim() == answer.trim() {
+        if context.request.code.trim() == answer.trim() {
           result.status = JudgeStatus::Accepted;
           result.score = 100;
         }

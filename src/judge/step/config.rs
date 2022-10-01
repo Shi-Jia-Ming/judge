@@ -7,11 +7,11 @@ use crate::communicate::spec::TaskSpec;
 
 use super::{Handle, HandleContext};
 
-pub struct ConfigStep {
+pub struct ConfigHandler {
   config: Option<PathBuf>,
 }
 
-impl ConfigStep {
+impl ConfigHandler {
   pub fn new(config: Option<PathBuf>) -> Self {
     Self { config }
   }
@@ -24,7 +24,7 @@ pub enum ParseError {
 }
 
 #[async_trait]
-impl Handle<TaskSpec> for ConfigStep {
+impl Handle<TaskSpec> for ConfigHandler {
   async fn handle(self, _context: &HandleContext) -> anyhow::Result<TaskSpec> {
     debug!("Parsing config.json...");
 

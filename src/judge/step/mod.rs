@@ -3,7 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use tokio::sync::{mpsc, Mutex};
 
-use crate::communicate::message::SendMessage;
+use crate::communicate::message::{SendMessage, TaskRequest};
 
 use super::cache::CacheDir;
 
@@ -20,6 +20,8 @@ pub struct HandleContext {
   pub sender: mpsc::Sender<SendMessage>,
   /// get cache
   pub cache: Arc<Mutex<CacheDir>>,
+  /// task request
+  pub request: TaskRequest,
 }
 
 #[async_trait]

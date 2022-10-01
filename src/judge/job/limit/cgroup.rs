@@ -3,6 +3,7 @@ use cgroups_rs::{
   cpuset::CpuSetController, freezer::FreezerController, hugetlb::HugeTlbController,
   memory::MemController, pid::PidController, Cgroup, CgroupPid, Hierarchy, Subsystem,
 };
+use log::debug;
 use std::{path::PathBuf, process};
 use tokio::process::Command;
 use uuid::Uuid;
@@ -19,8 +20,9 @@ pub struct CgroupLimit {
 
 impl CgroupLimit {
   pub fn new(memory: Memory) -> Self {
-    let heir = Box::new(V2Path::from("/sys/fs/cgroup/judger/"));
-    let cg_name = format!("judger_{}", Uuid::new_v4());
+    debug!("creating cgroup files");
+    let heir = Box::new(V2Path::from("/sys/fs/cgroup/judge/"));
+    let cg_name = format!("judge_{}", Uuid::new_v4());
 
     #[rustfmt::skip]
     let cgroup = CgroupBuilder::new(&cg_name)
@@ -59,6 +61,7 @@ impl Limit for CgroupLimit {
 
 impl Drop for CgroupLimit {
   fn drop(&mut self) {
+    debug!("removing cgroup files");
     self.cgroup.delete().expect("failed to delete cgroup files");
   }
 }
