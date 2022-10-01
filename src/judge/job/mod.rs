@@ -7,6 +7,8 @@ use std::{path::PathBuf, process::Output};
 use thiserror::Error;
 use tokio::{fs::File, process::Command};
 
+use crate::builder;
+
 use self::{
   executable::Executable,
   limit::{cgroup::CgroupLimit, rlimit::RLimit, Limit, LimitError},
@@ -60,34 +62,15 @@ impl Job {
     };
     Self::from_unlimited(command)
   }
-}
 
-// builder
-impl Job {
-  pub fn stdin(mut self, stdin: PathBuf) -> Self {
-    self.stdin = Some(stdin);
-    self
-  }
+  // builders
 
-  pub fn stdout(mut self, stdout: PathBuf) -> Self {
-    self.stdout = Some(stdout);
-    self
-  }
+  builder!(stdin, PathBuf);
+  builder!(stdout, PathBuf);
+  builder!(stderr, PathBuf);
 
-  pub fn stderr(mut self, stderr: PathBuf) -> Self {
-    self.stderr = Some(stderr);
-    self
-  }
-
-  pub fn rlimit(mut self, rlimit: RLimit) -> Self {
-    self.rlimit = Some(rlimit);
-    self
-  }
-
-  pub fn cgroup(mut self, cgroup: CgroupLimit) -> Self {
-    self.cgroup = Some(cgroup);
-    self
-  }
+  builder!(rlimit, RLimit);
+  builder!(cgroup, CgroupLimit);
 }
 
 impl Job {

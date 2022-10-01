@@ -88,6 +88,7 @@ impl Dispatch {
                           cache: cache.clone(),
                           request,
                         };
+
                         tokio::spawn(async move {
                           let result = RequestHandler.handle(&context).await;
                           let finish = match result {

@@ -108,6 +108,15 @@ impl TaskResult {
       memory: None,
     }
   }
+
+  pub fn from_status_message(status: TaskStatus, message: String) -> Self {
+    Self {
+      status,
+      message,
+      time: None,
+      memory: None,
+    }
+  }
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -124,6 +133,15 @@ impl SubtaskResult {
       message: String::new(),
       status: SubtaskStatus::Running,
       score: spec.score,
+      tasks: Vec::new(),
+    }
+  }
+
+  pub fn from_status_message(status: SubtaskStatus, message: String) -> Self {
+    Self {
+      status,
+      message,
+      score: 0,
       tasks: Vec::new(),
     }
   }

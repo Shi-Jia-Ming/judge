@@ -3,7 +3,7 @@ use log::debug;
 use std::path::PathBuf;
 use thiserror::Error;
 
-use crate::communicate::spec::TaskSpec;
+use crate::communicate::spec::JudgeSpec;
 
 use super::{Handle, HandleContext};
 
@@ -24,8 +24,8 @@ pub enum ParseError {
 }
 
 #[async_trait]
-impl Handle<TaskSpec> for ConfigHandler {
-  async fn handle(self, _context: &HandleContext) -> anyhow::Result<TaskSpec> {
+impl Handle<JudgeSpec> for ConfigHandler {
+  async fn handle(self, _context: &HandleContext) -> anyhow::Result<JudgeSpec> {
     debug!("Parsing config.json...");
 
     // unwrap config

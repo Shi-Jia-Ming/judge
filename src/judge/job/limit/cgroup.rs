@@ -1,3 +1,5 @@
+//! TODO: this limits does not work!
+
 use cgroups_rs::{
   blkio::BlkIoController, cgroup_builder::CgroupBuilder, cpu::CpuController,
   cpuset::CpuSetController, freezer::FreezerController, hugetlb::HugeTlbController,
@@ -12,7 +14,7 @@ use crate::judge::utils::Memory;
 
 use super::{Limit, LimitError};
 
-/// use cgroups v2 to limit resources
+/// Use cgroups v2 to limit resources
 pub struct CgroupLimit {
   /// Cgroup limits
   cgroup: Cgroup,
@@ -20,7 +22,8 @@ pub struct CgroupLimit {
 
 impl CgroupLimit {
   pub fn new(memory: Memory) -> Self {
-    debug!("creating cgroup files");
+    debug!("Creating cgroup files");
+
     let heir = Box::new(V2Path::from("/sys/fs/cgroup/judge/"));
     let cg_name = format!("judge_{}", Uuid::new_v4());
 

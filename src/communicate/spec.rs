@@ -7,7 +7,7 @@ use serde_derive::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "lowercase")]
 #[serde(tag = "type")]
-pub enum TaskSpec {
+pub enum JudgeSpec {
   Default {
     #[serde(flatten)]
     common: CommonTaskSpec,

@@ -9,7 +9,9 @@ use super::cache::CacheDir;
 
 pub mod compile;
 pub mod config;
+pub mod judge;
 pub mod request;
+pub mod subtask;
 pub mod sync;
 pub mod task;
 

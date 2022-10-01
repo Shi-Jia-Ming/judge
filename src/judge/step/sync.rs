@@ -19,8 +19,10 @@ impl SyncHandler {
 impl Handle<HashMap<String, PathBuf>> for SyncHandler {
   async fn handle(self, context: &HandleContext) -> anyhow::Result<HashMap<String, PathBuf>> {
     debug!("Start sync files...");
+
     let mut map = HashMap::new();
 
+    // sync files one by one
     for (filename, uuid) in self.files.into_iter() {
       // drop cache.lock() before await
       let recv = {

@@ -71,3 +71,14 @@ impl Serialize for Memory {
     serializer.serialize_u64(self.into_bytes())
   }
 }
+
+/// builder pattern generator for Option<T>
+#[macro_export]
+macro_rules! builder {
+  ($name:ident, $type:ty) => {
+    pub fn $name(mut self, $name: $type) -> Self {
+      self.$name = Some($name);
+      self
+    }
+  };
+}
