@@ -64,9 +64,15 @@ impl Handle<SubtaskResult> for SubtaskHandler<'_> {
 
       match task.status {
         // count passed cases
-        TaskStatus::Accepted => passed += 1,
+        TaskStatus::Accepted => {
+          result.tasks.push(task);
+          passed += 1;
+        }
         // skip remain test cases if not accepted
-        _ => break,
+        _ => {
+          result.tasks.push(task);
+          break;
+        }
       }
     }
 

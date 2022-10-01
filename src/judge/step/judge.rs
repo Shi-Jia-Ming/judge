@@ -111,7 +111,7 @@ impl Handle<JudgeResult> for JudgeHandler {
             SubtaskStatus::Accepted => subtask.score,
             _ => 0,
           };
-
+          result.subtasks.push(subtask);
           progress!(result.clone());
         }
 
