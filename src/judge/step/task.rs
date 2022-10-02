@@ -12,7 +12,7 @@ use crate::{
   },
   judge::{
     checker::Checker,
-    job::{executable::Executable, limit::rlimit::RLimit, wait::WaitStatus, Job},
+    job::{executable::Executable, limit::rlimit::RLimit, status::ExitType, Job},
     tmpdir::TmpDir,
     utils::{Memory, Time},
   },
@@ -126,10 +126,17 @@ impl Handle<TaskResult> for TaskHandler<'_> {
 
     // get task status and message
     let (status, message) = match wait.exit_type() {
-      WaitStatus::TimeLimitExceed => (TaskStatus::TimeLimitExceeded, String::new()),
-      WaitStatus::MemoryLimitExceed => (TaskStatus::MemoryLimitExceeded, String::new()),
-      WaitStatus::RuntimeError => (TaskStatus::RuntimeError, String::new()),
-      WaitStatus::Ok => {
+      ExitType::TimeLimitExceed => (TaskStatus::TimeLimitExceeded, String::new()),
+      ExitType::MemoryLimitExceed => (TaskStatus::MemoryLimitExceeded, String::new()),
+      ExitType::RuntimeError => (
+        TaskStatus::RuntimeError,
+        format!(
+          "signal {:?}, exit code {:?}",
+          wait.signal_code(),
+          wait.exit_code()
+        ),
+      ),
+      ExitType::Ok => {
         // read answer file from output
         let result = self.runner.checker.check_file(output, answer).await?;
         (

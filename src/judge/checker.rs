@@ -14,6 +14,22 @@ pub struct CheckResult {
   pub message: String,
 }
 
+impl CheckResult {
+  pub fn success(message: String) -> Self {
+    Self {
+      r#match: true,
+      message,
+    }
+  }
+
+  pub fn fail(message: String) -> Self {
+    Self {
+      r#match: false,
+      message,
+    }
+  }
+}
+
 #[derive(Debug, Error)]
 pub enum CheckError {
   #[error("failed to open file: {0}")]
@@ -28,10 +44,10 @@ impl Checker {
     }
   }
 
-  pub fn check(&self, stdout: &str, answer: &str) -> Result<CheckResult, CheckError> {
+  pub fn check(&self, output: &str, answer: &str) -> Result<CheckResult, CheckError> {
     match self {
       Checker::DefaultChecker => {
-        let stdout = stdout
+        let output = output
           .split_terminator('\n')
           .map(|s| s.trim_end())
           .collect::<Vec<_>>();
@@ -40,29 +56,21 @@ impl Checker {
           .map(|s| s.trim_end())
           .collect::<Vec<_>>();
 
-        if stdout.len() != answer.len() {
-          return Ok(CheckResult {
-            r#match: false,
-            message: "Lines mismatch".to_string(),
-          });
+        for index in 0..usize::max(output.len(), answer.len()) {
+          match (output.get(index), answer.get(index)) {
+            (Some(a), Some(b)) if a.trim_end() == b.trim_end() => continue,
+            (Some(_), Some(_)) => return Ok(CheckResult::fail(format!("line {index} mismatch"))),
+            (Some(_), None) => {
+              return Ok(CheckResult::fail(format!("output lines > answer lines")))
+            }
+            (None, Some(_)) => {
+              return Ok(CheckResult::fail(format!("output lines < answer lines")))
+            }
+            (None, None) => unreachable!(),
+          }
         }
 
-        let lines = std::iter::zip(stdout, answer).map(|(out, ans)| out == ans);
-        let mismatch = std::iter::zip(1.., lines)
-          .find(|(_, same)| !same)
-          .and_then(|(line, _)| Some(line));
-
-        if let Some(line) = mismatch {
-          Ok(CheckResult {
-            r#match: false,
-            message: format!("Wrong Answer at line {}", line),
-          })
-        } else {
-          Ok(CheckResult {
-            r#match: true,
-            message: format!("Correct"),
-          })
-        }
+        Ok(CheckResult::success(format!("correct")))
       }
 
       Checker::TestlibChecker {} => todo!(),

@@ -1,4 +1,3 @@
-use std::process::ExitStatusError;
 use thiserror::Error;
 
 use crate::judge::{
@@ -15,8 +14,6 @@ pub enum CompileError {
   JobError(#[from] JobError),
   #[error("unknown language")]
   UnknownLanguage,
-  #[error("failed to compile: {0}")]
-  ExitStatusError(#[from] ExitStatusError),
   #[error("{0}")]
   Failed(String),
 }

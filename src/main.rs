@@ -1,6 +1,3 @@
-#![feature(exit_status_error)]
-#![feature(try_blocks)]
-
 use judge::dispatch::Dispatch;
 use log::info;
 use std::error::Error;

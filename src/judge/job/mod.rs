@@ -1,6 +1,6 @@
 pub mod executable;
 pub mod limit;
-pub mod wait;
+pub mod status;
 
 use std::{
   path::PathBuf,
@@ -14,7 +14,7 @@ use crate::builder;
 use self::{
   executable::Executable,
   limit::{cgroup::CgroupLimit, rlimit::RLimit, Limit, LimitError},
-  wait::Wait,
+  status::ExitStatus,
 };
 
 /// Run the program with limitations
@@ -34,7 +34,7 @@ pub enum JobError {
   #[error("failed to execute command: {0}")]
   IoError(#[from] std::io::Error),
   #[error("wait failed: {0}")]
-  WaitError(#[from] self::wait::WaitError),
+  WaitError(#[from] self::status::WaitError),
   #[error("failed to apply limit to job: {0}")]
   LimitError(#[from] LimitError),
 }
@@ -104,10 +104,11 @@ impl Job {
   }
 
   /// Execute the job and get resource usage and exit_type
-  pub async fn status(mut self) -> Result<Wait, JobError> {
+  pub async fn status(mut self) -> Result<ExitStatus, JobError> {
     let command = self.command().await?;
     let child = command.spawn()?;
-    let wait = Wait::wait(child.id() as i32).await?;
+    let wait = ExitStatus::wait(child.id() as i32).await?;
+    wait.debug();
     Ok(wait)
   }
 

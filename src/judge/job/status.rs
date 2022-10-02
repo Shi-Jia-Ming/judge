@@ -1,3 +1,4 @@
+use log::debug;
 use thiserror::Error;
 use tokio::task::JoinError;
 
@@ -10,13 +11,13 @@ use crate::judge::utils::{Memory, Time};
 /// The struct hold the exit status and resource usage of a sub-process
 ///
 /// Used for determine the exit type of the program and get resource usage
-pub struct Wait {
+pub struct ExitStatus {
   rusage: Rusage,
   code: i32,
 }
 
 #[derive(Debug)]
-pub enum WaitStatus {
+pub enum ExitType {
   Ok,
   TimeLimitExceed,
   MemoryLimitExceed,
@@ -32,7 +33,7 @@ pub enum WaitError {
 }
 
 #[cfg(target_family = "unix")]
-impl Wait {
+impl ExitStatus {
   pub async fn wait(pid: i32) -> Result<Self, WaitError> {
     // This probably should be unsafe!
     let (code, status, rusage) = tokio::task::spawn_blocking(move || unsafe {
@@ -60,7 +61,7 @@ impl Wait {
 }
 
 #[cfg(target_family = "unix")]
-impl Wait {
+impl ExitStatus {
   pub fn is_signal(&self) -> bool {
     libc::WIFSIGNALED(self.code)
   }
@@ -88,19 +89,23 @@ impl Wait {
     self.is_exited() && self.exit_code() == Some(0)
   }
 
-  pub fn exit_type(&self) -> WaitStatus {
+  /// TODO 这里问题很大！
+  ///
+  /// 1. 超时之后有可能收到 SIGKILL 而不是 SIGXCPU
+  /// 2. 超出内存大小貌似也不会被终止？
+  pub fn exit_type(&self) -> ExitType {
     if self.is_ok() {
-      WaitStatus::Ok
+      ExitType::Ok
     } else if self.is_signal() {
       match self.signal_code().unwrap() {
-        libc::SIGXCPU => WaitStatus::TimeLimitExceed,
-        libc::SIGKILL => WaitStatus::RuntimeError,
-        libc::SIGSEGV => WaitStatus::RuntimeError,
-        libc::SIGXFSZ => WaitStatus::MemoryLimitExceed,
-        _ => WaitStatus::RuntimeError,
+        libc::SIGXCPU => ExitType::TimeLimitExceed,
+        libc::SIGKILL => ExitType::RuntimeError,
+        libc::SIGSEGV => ExitType::RuntimeError,
+        libc::SIGXFSZ => ExitType::MemoryLimitExceed,
+        _ => ExitType::RuntimeError,
       }
     } else {
-      WaitStatus::RuntimeError
+      ExitType::RuntimeError
     }
   }
 
@@ -110,6 +115,18 @@ impl Wait {
 
   pub fn memory(&self) -> Memory {
     self.rusage.memory()
+  }
+
+  /// debug informations
+  pub fn debug(&self) {
+    debug!("is_signal: {}", self.is_signal());
+    debug!("signal_code: {:?}", self.signal_code());
+    debug!("is_exited: {}", self.is_exited());
+    debug!("exit_code: {:?}", self.exit_code());
+    debug!("is_ok: {}", self.is_ok());
+    debug!("exit_type: {:?}", self.exit_type());
+    debug!("cputime: {:?}", self.cputime());
+    debug!("memory: {:?}", self.memory());
   }
 }
 
