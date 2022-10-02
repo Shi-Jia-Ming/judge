@@ -50,7 +50,7 @@ impl CgroupLimit {
 }
 
 impl Limit for CgroupLimit {
-  fn apply_to(&self, command: &mut Command) -> Result<(), LimitError> {
+  fn limit(&self, command: &mut Command) -> Result<(), LimitError> {
     let cgroup = self.cgroup.clone();
     unsafe {
       command.pre_exec(move || {

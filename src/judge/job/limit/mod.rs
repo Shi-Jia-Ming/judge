@@ -1,5 +1,5 @@
-use thiserror::Error;
 use std::process::Command;
+use thiserror::Error;
 
 pub mod cgroup;
 pub mod rlimit;
@@ -12,5 +12,5 @@ pub enum LimitError {}
 /// to clean the limits, impl the [`Drop`] trait
 pub trait Limit {
   /// apply this limit to the command
-  fn apply_to(&self, command: &mut Command) -> Result<(), LimitError>;
+  fn limit(&self, command: &mut Command) -> Result<(), LimitError>;
 }

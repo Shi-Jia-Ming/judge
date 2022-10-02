@@ -80,10 +80,10 @@ impl Job {
   async fn command(&mut self) -> Result<&mut Command, JobError> {
     // apply limits
     if let Some(rlimit) = &self.rlimit {
-      rlimit.apply_to(&mut self.command)?;
+      rlimit.limit(&mut self.command)?;
     }
     if let Some(cgroup) = &self.cgroup {
-      cgroup.apply_to(&mut self.command)?;
+      cgroup.limit(&mut self.command)?;
     }
 
     // apply io

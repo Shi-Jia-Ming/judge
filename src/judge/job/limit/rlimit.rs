@@ -21,7 +21,7 @@ impl RLimit {
 }
 
 impl Limit for RLimit {
-  fn apply_to(&self, command: &mut Command) -> Result<(), LimitError> {
+  fn limit(&self, command: &mut Command) -> Result<(), LimitError> {
     let time = self.time.into_seconds() as u64;
     let memory = self.memory.into_bytes();
     unsafe {
