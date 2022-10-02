@@ -6,7 +6,7 @@ use crate::{
     result::{SubtaskResult, SubtaskStatus, TaskResult, TaskStatus},
     spec::SubtaskSpec,
   },
-  judge::utils::{Memory, Time},
+  utils::{Memory, Time},
 };
 
 use super::{

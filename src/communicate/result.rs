@@ -1,6 +1,6 @@
 use serde_derive::Serialize;
 
-use crate::judge::utils::{Memory, Time};
+use crate::utils::{Memory, Time};
 
 use super::spec::SubtaskSpec;
 

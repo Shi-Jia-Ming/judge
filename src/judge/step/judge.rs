@@ -12,9 +12,9 @@ use crate::{
     checker::Checker,
     step::{compile::CompileStep, subtask::SubtaskHandler, task::TaskRunnerContextBuilder},
     tmpdir::TmpDir,
-    utils::{Memory, Time},
   },
   judge_error,
+  utils::{Memory, Time},
 };
 
 use super::{Handle, HandleContext};

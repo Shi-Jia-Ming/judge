@@ -1,3 +1,5 @@
+use std::ops::Add;
+
 use serde::Serialize;
 
 #[derive(Debug, Clone, Copy)]
@@ -29,6 +31,14 @@ impl Serialize for Time {
     S: serde::Serializer,
   {
     serializer.serialize_u32(self.into_microseconds())
+  }
+}
+
+impl Add for Time {
+  type Output = Time;
+
+  fn add(self, rhs: Self) -> Self::Output {
+    Time(self.0 + rhs.0)
   }
 }
 
@@ -69,6 +79,14 @@ impl Serialize for Memory {
     S: serde::Serializer,
   {
     serializer.serialize_u64(self.into_bytes())
+  }
+}
+
+impl Add for Memory {
+  type Output = Memory;
+
+  fn add(self, rhs: Self) -> Self::Output {
+    Memory(self.0 + rhs.0)
   }
 }
 

@@ -2,7 +2,7 @@ use std::{os::unix::process::CommandExt, process::Command};
 
 use rlimit::{setrlimit, Resource, INFINITY};
 
-use crate::judge::utils::{Memory, Time};
+use crate::utils::{Memory, Time};
 
 use super::{Limit, LimitError};
 

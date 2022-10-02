@@ -12,10 +12,15 @@ use crate::{
   },
   judge::{
     checker::Checker,
-    job::{executable::Executable, limit::rlimit::RLimit, status::ExitType, Job},
+    job::{
+      executable::Executable,
+      limit::{cgroup::CgroupLimit, rlimit::RLimit},
+      status::ExitType,
+      Job,
+    },
     tmpdir::TmpDir,
-    utils::{Memory, Time},
   },
+  utils::{Memory, Time},
 };
 
 use super::{Handle, HandleContext};
@@ -119,7 +124,7 @@ impl Handle<TaskResult> for TaskHandler<'_> {
       .stdin(input.clone())
       .stdout(output.clone())
       // FIXME enable cgroup limit
-      // .cgroup(CgroupLimit::new(Memory::from_bytes(memory_limit)))
+      // .cgroup(CgroupLimit::new(memory_limit))
       .rlimit(RLimit::new(time_limit, memory_limit))
       .status()
       .await?;
@@ -152,7 +157,7 @@ impl Handle<TaskResult> for TaskHandler<'_> {
     Ok(TaskResult {
       status,
       message,
-      time: Some(wait.cputime()),
+      time: Some(wait.time()),
       memory: Some(wait.memory()),
     })
   }

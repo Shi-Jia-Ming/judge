@@ -2,7 +2,7 @@ use log::debug;
 use thiserror::Error;
 use tokio::task::JoinError;
 
-use crate::judge::utils::{Memory, Time};
+use crate::utils::{Memory, Time};
 
 #[cfg(target_family = "unix")]
 #[derive(Debug)]
@@ -109,8 +109,8 @@ impl ExitStatus {
     }
   }
 
-  pub fn cputime(&self) -> Time {
-    self.rusage.cputime()
+  pub fn time(&self) -> Time {
+    self.rusage.cputime() + self.rusage.usertime()
   }
 
   pub fn memory(&self) -> Memory {
@@ -125,7 +125,7 @@ impl ExitStatus {
     debug!("exit_code: {:?}", self.exit_code());
     debug!("is_ok: {}", self.is_ok());
     debug!("exit_type: {:?}", self.exit_type());
-    debug!("cputime: {:?}", self.cputime());
+    debug!("time: {:?}", self.time());
     debug!("memory: {:?}", self.memory());
   }
 }
@@ -139,6 +139,11 @@ impl Rusage {
   /// get cpu time
   pub fn cputime(&self) -> Time {
     Time::from_microseconds((self.0.ru_stime.tv_sec * 1000 + self.0.ru_stime.tv_usec / 1000) as u32)
+  }
+
+  /// get user time
+  pub fn usertime(&self) -> Time {
+    Time::from_microseconds((self.0.ru_utime.tv_sec * 1000 + self.0.ru_utime.tv_usec / 1000) as u32)
   }
 
   /// get max memory usage in bytes
