@@ -1,13 +1,12 @@
 use judge::dispatch::Dispatch;
 use log::info;
-use std::error::Error;
 use tokio::net::TcpListener;
 
 mod communicate;
 mod judge;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() {
   env_logger::init();
 
   let addr = std::env::args()
@@ -15,8 +14,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     .unwrap_or_else(|| "127.0.0.1:1145".to_string());
 
   // Create the event loop and TCP listener we'll accept connections on.
-  let listener = TcpListener::bind(&addr).await?;
-  info!("Listening on: {}", addr);
+  let listener = TcpListener::bind(&addr)
+    .await
+    .expect(&format!("failed to listen on {addr}"));
+  info!("Listening on: {addr}");
 
   while let Ok((stream, _)) = listener.accept().await {
     let addr = stream
@@ -34,6 +35,4 @@ async fn main() -> Result<(), Box<dyn Error>> {
       info!("Connection closed: {}", addr);
     });
   }
-
-  Ok(())
 }
